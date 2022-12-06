@@ -1,45 +1,35 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import xml.etree.ElementTree as ET
-import time
+import time,json
 
 tree = ET.parse('./orders.xml')
-root = tree.getroot()
-orders = {'book-2': [], 'book-1': [], 'book-3': []}
 
-
+orders = {'book-2': {}, 'book-1':{}, 'book-3': {}}
 def handleOrder(attributes):
-    for item in orders[attributes.book]:
-        if item['orderId'] == attributes['orderId']:
-            new_dict = {}
-            new_dict[attributes['operation'
-                     ]].push({'volume': attributes['volume'],
-                             'price': attributes['price']})
-            item['data'].push(new_dict)
-        else:
-            new_item = {}
-            new_dict = {}
-            new_dict[attributes['operation'
-                     ]].push({'volume': attributes['volume'],
-                             'price': attributes['price']})
-            new_item['data'].push(new_dict)
-            orders[attributes.book]
-
+    if str(attributes['orderId']) in orders[attributes['book']]:
+        orders[attributes['book']][str(attributes['orderId'])][attributes['operation']].push(
+                {'volume': attributes['volume'],
+                 'price': attributes['price']})
+    else:
+       orders[attributes['book']][str(attributes['orderId'])] = {
+            attributes['operation']: [{'volume': attributes['volume'],
+                                       'price': attributes['price']}]
+          }
 
 def main():
+    root = tree.getroot()
     startTime = time.time()
     for child in root:
-        if attributes['tag'] == 'DeleteOrder':
-            for item in orders[attributes.book]:
-                orders[attributes.book] = list(filter(lambda score: \
-                        score['orderId'] != attributes['orderId'],
-                        orders[attributes.book]))
+        attrs = child.attrib
+        if child.tag == 'DeleteOrder':
+            orderId = str(attrs['orderId'])
+            if orderId in orders[attrs['book']]:
+                del orders[attrs['book']][orderId]
         else:
-            handleOrder(attributes)
+            handleOrder({'book': attrs['book'], 'operation': attrs['operation'], 'price':attrs['price'],'volume':attrs['volume'], 'orderId':attrs['orderId']})
+    with open("output.json", "w") as outfile:
+        outfile.write(json.dumps(orders, indent=4))
+    print('TIME ELAPSED' + str(time.time()-startTime))
 
-    for (book, data) in orders.items():
-        print book
-        for item_ in data:
-            print item_['buy']['volume'] + '@' + item['price'] + '---' \
-                + item_['sell']['volume'] + '@' + item['price']
-    print 'TIME ELAPSED' + time.time() - startTime
+main()
